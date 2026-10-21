@@ -2,8 +2,9 @@ import importlib
 import itertools
 from collections.abc import Sequence
 from inspect import isclass
+from pathlib import Path
 from types import ModuleType
-from typing import NotRequired, Optional, TypedDict, cast
+from typing import Any, NotRequired, Optional, TypedDict, cast
 
 from evalio import datasets
 from evalio.datasets.base import Dataset
@@ -134,13 +135,14 @@ class DatasetConfig(TypedDict):
 
 
 def parse_config(
-    d: str | DatasetConfig | Sequence[str | DatasetConfig],
+    d: str | DatasetConfig | dict[str, Any] | Sequence[str | DatasetConfig],
+    base_dir: Path = Path("."),
 ) -> list[tuple[Dataset, int | None]] | DatasetConfigError:
     name: Optional[str] = None
     length: Optional[int] = None
     # If given a list of values
     if isinstance(d, list):
-        results = [parse_config(x) for x in d]
+        results = [parse_config(x, base_dir) for x in d]
         for r in results:
             if isinstance(r, DatasetConfigError):
                 return r
@@ -152,6 +154,16 @@ def parse_config(
         name = d
         length = None
     elif isinstance(d, dict):
+        if "rosbag" in d:
+            from evalio.datasets.rosbag import rosbag_dataset
+
+            try:
+                length = d.get("length")
+                if length is not None and (type(length) is not int or length <= 0):
+                    raise ValueError("Rosbag length must be a positive integer")
+                return [(rosbag_dataset(dict(d), base_dir), length)]
+            except (ValueError, TypeError, KeyError) as error:
+                return InvalidDatasetConfig(str(error))
         name = d.get("name", None)
         length = d.get("length", None)
     else:

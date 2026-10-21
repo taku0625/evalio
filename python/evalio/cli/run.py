@@ -124,6 +124,9 @@ def run_from_cli(
 
             params = yaml.load(f, Loader=Loader)
 
+        if not isinstance(params, dict):
+            raise typer.BadParameter("Config must be a YAML mapping", param_hint="run")
+
         if "datasets" not in params:
             raise typer.BadParameter(
                 "No datasets specified in config", param_hint="run"
@@ -133,13 +136,11 @@ def run_from_cli(
                 "No pipelines specified in config", param_hint="run"
             )
 
-        datasets = ds.parse_config(params.get("datasets", None))
+        datasets = ds.parse_config(params.get("datasets", None), config.parent)
         pipelines = pl.parse_config(params.get("pipelines", None))
 
-        out = (
-            params["output_dir"]
-            if "output_dir" in params
-            else Path("./evalio_results") / config.stem
+        out = in_out or Path(
+            params.get("output_dir", Path("./evalio_results") / config.stem)
         )
 
     # ------------------------- Parse manual options ------------------------- #
@@ -191,9 +192,15 @@ def run_from_cli(
         d._fail_not_downloaded()
 
     # parse all of the lengths
-    datasets = [
-        (s, len(s) if length is None else min(len(s), length)) for s, length in datasets
-    ]
+    try:
+        datasets = [
+            (s, len(s) if length is None else min(len(s), length))
+            for s, length in datasets
+        ]
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint="run") from error
+    if any(length <= 0 for _, length in datasets):
+        raise typer.BadParameter("Datasets must contain at least one LiDAR scan")
 
     print(
         f"Running {plural(len(datasets), 'dataset')} => {plural(len(pipelines) * len(datasets), 'experiment')}"
@@ -236,7 +243,8 @@ def run_from_cli(
         for name, pipeline, params in pipelines
     ]
 
-    run(experiments, vis, rerun_failed)
+    if not run(experiments, vis, rerun_failed):
+        raise typer.Exit(code=1)
 
 
 def plural(num: int, word: str) -> str:
@@ -247,7 +255,7 @@ def run(
     experiments: list[ty.Experiment],
     vis: RerunVis,
     rerun_failed: bool,
-):
+) -> bool:
     # Make sure everything is in the experiments that we need
     len_before = len(experiments)
     experiments = [
@@ -262,6 +270,7 @@ def run(
             f"Some experiments were invalid and will be skipped ({len_before - len(experiments)} out of {len_before})"
         )
 
+    success = True
     prev_dataset = None
     for exp in experiments:
         # For the type checker
@@ -301,6 +310,7 @@ def run(
                     print(f"Rerunning {info}, previously failed")
                 else:
                     print(f"Skipping {info}, previously failed")
+                    success = False
                     continue
             case ty.ExperimentStatus.Started:
                 print(f"Overwriting {info}")
@@ -321,6 +331,7 @@ def run(
 
         # If it failed, mark the status as failed
         if exitcode != 0:
+            success = False
             exp.status = ty.ExperimentStatus.Fail
             traj = ty.Trajectory.from_file(exp.file)
             if isinstance(traj, ty.Trajectory) and isinstance(
@@ -334,6 +345,7 @@ def run(
     # if len(experiments) > 1:
     #     if (file := experiments[0].file) is not None:
     #         evaluate([str(file.parent)])
+    return success
 
 
 def run_single(
@@ -343,8 +355,7 @@ def run_single(
     # Build everything
     output = exp.setup()
     if isinstance(output, ds.DatasetConfigError | pl.PipelineConfigError):
-        print_warning(f"Error setting up experiment {exp.name}: {output}")
-        return
+        raise TypeError(f"Error setting up experiment {exp.name}: {output}")
     pipe, dataset = output
     if vis.args is not None:
         pipe.set_visualizing(vis.args)
@@ -390,6 +401,11 @@ def run_single(
             break
 
     loop.close()
+    if loop.n < exp.sequence_length or len(traj) == 0:
+        traj.close()
+        raise ValueError(
+            "Experiment ended without the requested scans and pose estimates"
+        )
     traj.metadata.status = ty.ExperimentStatus.Complete
     traj.metadata.total_elapsed = time_total
     traj.metadata.max_elapsed = time_max

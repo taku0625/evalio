@@ -23,6 +23,7 @@ __pycache__
 .cache
 .clangd
 python/evalio/_cpp
+python/evalio/_cpp*.so
 tests/data-old
 data
 .envrc

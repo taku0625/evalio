@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 
 #include "ct_icp/odometry.hpp"
@@ -229,7 +230,17 @@ public:
 
   void add_lidar(ev::LidarMeasurement mm) override {
     // Convert
-    auto pc = ev::convert_iter<std::vector<ct_icp::Point3D>>(mm.points);
+    std::vector<ct_icp::Point3D> pc;
+    pc.reserve(mm.points.size());
+    for (const auto& p : mm.points) {
+      const double range_sq = p.x * p.x + p.y * p.y + p.z * p.z;
+      if (std::isfinite(range_sq) && range_sq > 0.0) {
+        pc.push_back(ev::convert<ct_icp::Point3D>(p));
+      }
+    }
+    if (pc.empty()) {
+      throw std::runtime_error("CT-ICP received a scan with no valid points");
+    }
 
     // Normalize timestamps to [0, 1]
     const auto& [min, max] = std::minmax_element(
@@ -243,7 +254,7 @@ public:
     const auto min_t = min->alpha_timestamp;
     const auto max_t = max->alpha_timestamp;
     const auto normalize = [min_t, max_t](double t) {
-      return (t - min_t) / (max_t - min_t);
+      return max_t > min_t ? (t - min_t) / (max_t - min_t) : 0.0;
     };
 
     // Copy
@@ -253,6 +264,11 @@ public:
 
     // Run through pipeline
     const auto summary = ct_icp_->RegisterFrame(pc);
+    if (!summary.success) {
+      throw std::runtime_error(
+        "CT-ICP registration failed: " + summary.error_message
+      );
+    }
 
     // Save the estimate
     const auto pose = ct_icp_->Trajectory().back();

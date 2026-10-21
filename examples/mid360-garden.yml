@@ -1,0 +1,39 @@
+output_dir: ./results/mid360-garden
+
+datasets:
+  - name: garden1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/garden1
+    lidar_topic: /livox/lidar
+    # Set imu_topic: /livox/imu to also read IMU messages. These three methods use LiDAR only.
+    lidar: &mid360
+      num_rows: 32
+      num_columns: 512
+      rate: 10.0
+      min_range: 0.1
+      max_range: 70.0
+    projection: &projection
+      min_elevation: -7.0
+      max_elevation: 52.0
+    # Optional TUM trajectory in the LiDAR frame, with seconds in the bag clock:
+    # ground_truth: /path/to/garden1.tum
+    # length: 100
+  - name: garden2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/garden2
+    lidar: *mid360
+    projection: *projection
+  - name: garden3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/garden3
+    lidar: *mid360
+    projection: *projection
+
+pipelines:
+  - pipeline: kiss
+    max_num_threads: 2
+  - pipeline: ct
+    # Rigid ICP also supports PointCloud2 bags without per-point timestamps.
+    # For timed scans use CONTINUOUS and CT_POINT_TO_PLANE instead.
+    motion_compensation: NONE
+    distance: POINT_TO_PLANE
+    ls_num_threads: 2
+  - pipeline: form
+    num_threads: 2
