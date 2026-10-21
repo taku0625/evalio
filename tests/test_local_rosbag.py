@@ -1,3 +1,4 @@
+import csv
 import pickle
 import struct
 from pathlib import Path
@@ -275,6 +276,7 @@ def test_ct_without_point_times(tmp_path: Path):
     assert isinstance(trajectory, ty.Trajectory)
     assert len(trajectory) == 4
     assert np.isfinite([p.trans for p in trajectory.poses]).all()
+    assert not (tmp_path / "results" / "evaluation.csv").exists()
 
 
 @pytest.mark.parametrize("pipeline", ["kiss", "ct", "form"])
@@ -287,6 +289,7 @@ def test_run_rosbag_cli(tmp_path: Path, pipeline: str):
     )
     config = {
         "datasets": [config_for(Path("bag")) | {"ground_truth": "gt.tum"}],
+        "evaluation": {"w_seconds": [0.1]},
         "pipelines": [pipeline],
         "output_dir": str(tmp_path / "results"),
     }
@@ -316,6 +319,66 @@ def test_run_rosbag_cli(tmp_path: Path, pipeline: str):
     assert metrics is not None and len(metrics) == 1
     assert metrics[0]["ATEt"] < 0.15
     assert np.isfinite(metrics[0]["RTEt_0.1s"])
+    assert "Ground-truth evaluation" in result.output
+    with (tmp_path / "results" / "evaluation.csv").open() as stream:
+        report = list(csv.DictReader(stream))
+    assert len(report) == 1
+    assert report[0]["name"] == pipeline
+    assert float(report[0]["ATEt"]) == pytest.approx(metrics[0]["ATEt"])
+    assert float(report[0]["RTEt_0.1s"]) == pytest.approx(metrics[0]["RTEt_0.1s"])
+
+
+def test_add_and_refresh_ground_truth_for_completed_run(tmp_path: Path):
+    if "kiss" not in pl.all_pipelines():
+        pytest.skip("kiss is not compiled in this build")
+    make_bag(tmp_path / "bag", True, StoragePlugin.SQLITE3)
+    dataset = config_for(Path("bag"))
+    config = {
+        "datasets": [dataset],
+        "pipelines": ["kiss"],
+        "evaluation": {"w_seconds": [0.1]},
+        "output_dir": str(tmp_path / "results"),
+    }
+    config_path = tmp_path / "run.yml"
+    config_path.write_text(yaml.safe_dump(config))
+    runner = CliRunner()
+    assert runner.invoke(app, ["run", "-c", str(config_path)]).exit_code == 0
+    report_path = tmp_path / "results" / "evaluation.csv"
+    assert not report_path.exists()
+    trajectory = tmp_path / "results" / "rosbag" / "garden" / "kiss.csv"
+    original = trajectory.read_bytes()
+    (trajectory.parent / "unrelated.csv").write_bytes(original)
+    dataset["ground_truth"] = "gt.tum"
+    config_path.write_text(yaml.safe_dump(config))
+    for translation in (0.02, 0.2):
+        (tmp_path / "gt.tum").write_text(
+            "\n".join(
+                f"{1 + i * 0.1:.1f} {i * translation} 0 0 0 0 0 1" for i in range(4)
+            )
+        )
+        result = runner.invoke(app, ["run", "-c", str(config_path)])
+        assert result.exit_code == 0, result.output
+        assert "already finished" in result.output
+        assert trajectory.read_bytes() == original
+        gt = ty.Trajectory.from_file(trajectory.parent / "gt.csv")
+        assert isinstance(gt, ty.Trajectory)
+        assert gt.poses[-1].trans[0] == pytest.approx(3 * translation)
+        with report_path.open() as stream:
+            report = list(csv.DictReader(stream))
+        assert len(report) == 1
+    config["evaluation"] = {"w_seconds": [1.0]}
+    config_path.write_text(yaml.safe_dump(config))
+    assert runner.invoke(app, ["run", "-c", str(config_path)]).exit_code == 0
+    with report_path.open() as stream:
+        row = next(csv.DictReader(stream))
+    assert row["RTEt_1.0s"] == ""
+    assert np.isfinite(float(row["ATEt"]))
+    (tmp_path / "gt.tum").write_text("100 0 0 0 0 0 0 1\n101 1 0 0 0 0 0 1\n")
+    result = runner.invoke(app, ["run", "-c", str(config_path)])
+    assert result.exit_code == 1
+    assert "overlapping" in result.output
+    with report_path.open() as stream:
+        assert list(csv.DictReader(stream)) == []
 
 
 def test_failed_pipeline_returns_error_and_can_retry(tmp_path: Path):
@@ -323,10 +386,15 @@ def test_failed_pipeline_returns_error_and_can_retry(tmp_path: Path):
         pytest.skip("kiss is not compiled in this build")
     make_bag(tmp_path / "bag", True, StoragePlugin.SQLITE3)
     dataset = config_for(Path("bag"))
+    dataset["ground_truth"] = "gt.tum"
+    (tmp_path / "gt.tum").write_text(
+        "\n".join(f"{1 + i * 0.1:.1f} {i * 0.02} 0 0 0 0 0 1" for i in range(4))
+    )
     dataset["lidar"]["max_range"] = 0.2
     config = {
         "datasets": [dataset],
         "pipelines": ["kiss"],
+        "evaluation": {"w_seconds": [0.1]},
         "output_dir": str(tmp_path / "results"),
     }
     config_path = tmp_path / "run.yml"
@@ -340,8 +408,12 @@ def test_failed_pipeline_returns_error_and_can_retry(tmp_path: Path):
     assert isinstance(trajectory, ty.Trajectory)
     assert isinstance(trajectory.metadata, ty.Experiment)
     assert trajectory.metadata.status == ty.ExperimentStatus.Fail
+    with (tmp_path / "results" / "evaluation.csv").open() as stream:
+        assert list(csv.DictReader(stream)) == []
     assert runner.invoke(app, ["run", "-c", str(config_path)]).exit_code == 1
     dataset["lidar"]["max_range"] = 70.0
     config_path.write_text(yaml.safe_dump(config))
     result = runner.invoke(app, ["run", "-c", str(config_path), "--rerun-failed"])
     assert result.exit_code == 0, result.output
+    with (tmp_path / "results" / "evaluation.csv").open() as stream:
+        assert next(csv.DictReader(stream))["status"] == "complete"

@@ -1,5 +1,5 @@
 import itertools
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Annotated, Any, Optional, cast
 
@@ -25,11 +25,15 @@ def eval_dataset(
     windows: list[stats.WindowKind],
     metric: stats.MetricKind,
     length: Optional[int],
+    *,
+    files: Optional[Sequence[Path]] = None,
+    only_complete: bool = False,
+    require_ground_truth: bool = False,
 ) -> Optional[list[dict[str, Any]]]:
     # Load all trajectories
     gt_og: Optional[ty.Trajectory[ty.GroundTruth]] = None
     all_trajs: list[ty.Trajectory[ty.Experiment]] = []
-    for file_path in dir.glob("*.csv"):
+    for file_path in dir.glob("*.csv") if files is None else [dir / "gt.csv", *files]:
         traj = ty.Trajectory.from_file(file_path)
         if not isinstance(traj, ty.Trajectory):
             print_warning(f"Could not load trajectory from {file_path}, skipping.")
@@ -40,7 +44,12 @@ def eval_dataset(
                 continue
             gt_og = cast(ty.Trajectory[ty.GroundTruth], traj)
         elif isinstance(traj.metadata, ty.Experiment):
+            if only_complete and traj.metadata.status != ty.ExperimentStatus.Complete:
+                continue
             all_trajs.append(cast(ty.Trajectory[ty.Experiment], traj))
+
+    if require_ground_truth and (gt_og is None or len(gt_og) < 2):
+        raise ValueError(f"Ground truth in {dir} requires at least two poses")
 
     # Setup visualization
     if visualize:
@@ -80,16 +89,26 @@ def eval_dataset(
 
         # compute hertz here before aligning
         hz = None
-        if traj.metadata.total_elapsed is not None:
+        if traj.metadata.total_elapsed is not None and traj.metadata.total_elapsed > 0:
             hz = len(traj) / traj.metadata.total_elapsed
 
         if len(traj) > 0 and gt_og is not None:
+            if require_ground_truth and (
+                len(traj) < 2
+                or traj.stamps[-1] < gt_og.stamps[0]
+                or gt_og.stamps[-1] < traj.stamps[0]
+            ):
+                raise ValueError(
+                    f"{traj.metadata.name}: require two poses with overlapping ground-truth timestamps"
+                )
             # align to ground truth, copying ground truth by hand
             gt_aligned = Trajectory(
                 stamps=[ty.Stamp(s) for s in gt_og.stamps],
                 poses=[ty.SE3(p) for p in gt_og.poses],
             )
             stats.align(traj, gt_aligned, in_place=True)
+            if require_ground_truth and len(traj) < 2:
+                raise ValueError(f"{traj.metadata.name}: fewer than two aligned poses")
 
             # shrink to specified length
             if length is not None and len(traj) > length:

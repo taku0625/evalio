@@ -15,6 +15,7 @@ from evalio import pipelines as pl
 from evalio import types as ty
 from evalio._cpp.types import VisOption  # type: ignore
 from evalio.cli.completions import DatasetOpt, PipelineOpt
+from evalio.cli.evaluation import evaluate_runs, evaluation_options
 from evalio.rerun import RerunVis
 from evalio.types.base import Trajectory
 from evalio.utils import print_warning
@@ -105,6 +106,7 @@ def run_from_cli(
         ),
     ] = False,
 ):
+    evaluation_config = {}
     if (in_pipelines or in_datasets or length) and config:
         raise typer.BadParameter(
             "Cannot specify both config and manual options", param_hint="run"
@@ -126,6 +128,7 @@ def run_from_cli(
 
         if not isinstance(params, dict):
             raise typer.BadParameter("Config must be a YAML mapping", param_hint="run")
+        evaluation_config = params.get("evaluation", {})
 
         if "datasets" not in params:
             raise typer.BadParameter(
@@ -251,7 +254,13 @@ def run_from_cli(
         for name, pipeline, params in pipelines
     ]
 
-    if not run(experiments, vis, rerun_failed):
+    try:
+        windows, metric = evaluation_options(evaluation_config)
+    except (ValueError, TypeError) as error:
+        raise typer.BadParameter(str(error), param_hint="evaluation") from error
+    success = run(experiments, vis, rerun_failed)
+    evaluation_success = evaluate_runs(experiments, out, windows, metric)
+    if not success or not evaluation_success:
         raise typer.Exit(code=1)
 
 
@@ -280,6 +289,7 @@ def run(
 
     success = True
     prev_dataset = None
+    saved_ground_truth: set[ds.Dataset] = set()
     for exp in experiments:
         # For the type checker
         if (
@@ -289,11 +299,13 @@ def run(
         ):
             continue
 
-        # save ground truth if we haven't already
-        if not (gt_file := exp.file.parent / "gt.csv").exists():
+        # Refresh ground truth once per dataset, including completed runs.
+        gt_file = exp.file.parent / "gt.csv"
+        if exp.sequence not in saved_ground_truth:
             gt = exp.sequence.ground_truth()
             if gt is not None:
                 gt.to_file(gt_file)
+            saved_ground_truth.add(exp.sequence)
 
         # Figure out the status of the experiment
         traj = ty.Trajectory.from_file(exp.file)

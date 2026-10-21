@@ -1,5 +1,11 @@
 output_dir: ./results/mid360-garden
 
+# Automatically evaluate completed runs when ground_truth is provided below.
+evaluation:
+  metric: sse
+  w_seconds: [1.0]
+  w_meters: []
+
 datasets:
   - name: garden1
     rosbag: /home/nakao/dataset/rosbag/ral2026/garden1
@@ -22,11 +28,13 @@ datasets:
     lidar_topic: *lidar_topic
     lidar: *mid360
     projection: *projection
+    # ground_truth: /path/to/garden2.tum
   - name: garden3
     rosbag: /home/nakao/dataset/rosbag/ral2026/garden3
     lidar_topic: *lidar_topic
     lidar: *mid360
     projection: *projection
+    # ground_truth: /path/to/garden3.tum
 
 pipelines:
   - pipeline: kiss
