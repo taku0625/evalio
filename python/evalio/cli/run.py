@@ -201,7 +201,10 @@ def run_from_cli(
                 f"{sequence.full_name}: {error}", param_hint="run"
             ) from error
         sized_datasets.append(
-            (sequence, count if sequence_length is None else min(count, sequence_length))
+            (
+                sequence,
+                count if sequence_length is None else min(count, sequence_length),
+            )
         )
     datasets = sized_datasets
     if any(length <= 0 for _, length in datasets):
