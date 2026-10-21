@@ -3,7 +3,7 @@ output_dir: ./results/mid360-garden
 datasets:
   - name: garden1
     rosbag: /home/nakao/dataset/rosbag/ral2026/garden1
-    lidar_topic: /livox/lidar
+    lidar_topic: &lidar_topic /livox/lidar_192_168_1_182
     # Set imu_topic: /livox/imu to also read IMU messages. These three methods use LiDAR only.
     lidar: &mid360
       num_rows: 32
@@ -19,10 +19,12 @@ datasets:
     # length: 100
   - name: garden2
     rosbag: /home/nakao/dataset/rosbag/ral2026/garden2
+    lidar_topic: *lidar_topic
     lidar: *mid360
     projection: *projection
   - name: garden3
     rosbag: /home/nakao/dataset/rosbag/ral2026/garden3
+    lidar_topic: *lidar_topic
     lidar: *mid360
     projection: *projection
 

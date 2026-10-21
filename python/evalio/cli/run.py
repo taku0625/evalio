@@ -192,13 +192,18 @@ def run_from_cli(
         d._fail_not_downloaded()
 
     # parse all of the lengths
-    try:
-        datasets = [
-            (s, len(s) if length is None else min(len(s), length))
-            for s, length in datasets
-        ]
-    except ValueError as error:
-        raise typer.BadParameter(str(error), param_hint="run") from error
+    sized_datasets = []
+    for sequence, sequence_length in datasets:
+        try:
+            count = len(sequence)
+        except ValueError as error:
+            raise typer.BadParameter(
+                f"{sequence.full_name}: {error}", param_hint="run"
+            ) from error
+        sized_datasets.append(
+            (sequence, count if sequence_length is None else min(count, sequence_length))
+        )
+    datasets = sized_datasets
     if any(length <= 0 for _, length in datasets):
         raise typer.BadParameter("Datasets must contain at least one LiDAR scan")
 

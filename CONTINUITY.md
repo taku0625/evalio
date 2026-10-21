@@ -1,4 +1,5 @@
 # Snapshot
+- 2026-10-21 [USER] Actual LiDAR topic is `/livox/lidar_192_168_1_182`; editing only garden1 left garden2/3 on the loader default. Share the example topic through a YAML anchor; identify the dataset in topic errors.
 - 2026-10-21 [USER] Create a branch from evalio main, support evaluating ROS 2 Jazzy Livox MID-360 bags with KissICP, CT-ICP and FORM, and push it.
 - 2026-10-21 [USER] Target bags: `/home/nakao/dataset/rosbag/ral2026/garden1`, `garden2`, `garden3`.
 - 2026-10-21 [TOOL] Those paths are absent in the cloud machine; validate generated ROS 2 bags and provide a runnable garden configuration.
@@ -34,6 +35,7 @@
 - `docs/css/tweaks.css`
 
 # Receipts
+- 2026-10-21 [TOOL] Topic regression tests cover editing the example's single shared value across all three bags and naming garden2 in CLI errors; local rosbag suite: 14 passed; Ruff and type checking verified.
 - 2026-10-21 [TOOL] `/workspace/.setup/install_all.sh` rerun succeeded with verified Debian packages and local C++ prefixes; activation at `/workspace/.setup/activate.sh`. Install/start instructions saved to environment draft; not published.
 - 2026-10-21 [TOOL] Generated garden1–3 bags: nine runs produced four poses each; CLI stats computed ATE/RTE; repeat skipped nine completed runs. Logs: `/workspace/.setup/garden-{run,stats,repeat}.log`.
 - 2026-10-21 [TOOL] `PYTHONPATH=python pytest -q`: 94 passed, 2 skipped; pyrefly: 0 errors; Ruff and clang-format 20 passed; Zensical built without issues.

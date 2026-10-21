@@ -32,6 +32,7 @@ def make_bag(
     timed: bool = True,
     rows: int = 16,
     columns: int = 180,
+    lidar_topic: str = "/livox/lidar",
 ) -> None:
     store = get_typestore(Stores.ROS2_JAZZY)
     package = "livox_ros_driver2/msg/"
@@ -60,7 +61,7 @@ def make_bag(
     )
     msgtype = package + "CustomMsg" if custom else "sensor_msgs/msg/PointCloud2"
     with Writer(path, version=9, storage_plugin=storage) as writer:
-        connection = writer.add_connection("/livox/lidar", msgtype, typestore=store)
+        connection = writer.add_connection(lidar_topic, msgtype, typestore=store)
         for i in range(frames):
             origin = np.array([0.02 * i, 0, 1.5])
             bounds = np.where(rays > 0, [6, 6, 4], [-6, -6, 0])
@@ -117,6 +118,40 @@ def config_for(path: Path) -> dict:
         "name": "garden",
         "lidar": {"num_rows": 16, "num_columns": 180},
     }
+
+
+def test_garden_example_shares_lidar_topic(tmp_path: Path):
+    example = Path(__file__).resolve().parents[1] / "examples/mid360-garden.yml"
+    topic = "/custom/lidar"
+    config = yaml.safe_load(
+        example.read_text().replace("/livox/lidar_192_168_1_182", topic)
+    )
+    for entry in config["datasets"]:
+        bag = tmp_path / entry["name"]
+        make_bag(bag, True, StoragePlugin.SQLITE3, frames=1, lidar_topic=topic)
+        entry["rosbag"] = str(bag)
+    sequences = ds.parse_config(config["datasets"])
+    assert isinstance(sequences, list)
+    assert len(sequences) == 3
+    for sequence, _ in sequences:
+        assert len(sequence) == 1
+
+
+def test_topic_error_identifies_dataset(tmp_path: Path):
+    make_bag(tmp_path / "bag", True, StoragePlugin.SQLITE3, frames=1)
+    config = {
+        "datasets": [
+            config_for(Path("bag")) | {"name": "garden1"},
+            config_for(Path("bag")) | {"name": "garden2", "lidar_topic": "/missing"},
+        ],
+        "pipelines": ["kiss"],
+    }
+    config_path = tmp_path / "run.yml"
+    config_path.write_text(yaml.safe_dump(config))
+    result = CliRunner().invoke(app, ["run", "-c", str(config_path)])
+    assert result.exit_code == 2
+    assert "rosbag/garden2" in result.output
+    assert "Missing LiDAR topic /missing" in result.output
 
 
 @pytest.mark.parametrize("custom", [False, True], ids=["pointcloud2", "livox"])
