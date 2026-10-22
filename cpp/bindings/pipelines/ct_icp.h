@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cmath>
 #include <memory>
 
 #include "ct_icp/odometry.hpp"
@@ -230,14 +229,10 @@ public:
 
   void add_lidar(ev::LidarMeasurement mm) override {
     // Convert
-    std::vector<ct_icp::Point3D> pc;
-    pc.reserve(mm.points.size());
-    for (const auto& p : mm.points) {
-      const double range_sq = p.x * p.x + p.y * p.y + p.z * p.z;
-      if (std::isfinite(range_sq) && range_sq > 0.0) {
-        pc.push_back(ev::convert<ct_icp::Point3D>(p));
-      }
-    }
+    auto pc = ev::convert_iter<std::vector<ct_icp::Point3D>>(mm.points);
+    std::erase_if(pc, [](const ct_icp::Point3D& p) {
+      return p.raw_pt.squaredNorm() == 0.0;
+    });
     if (pc.empty()) {
       throw std::runtime_error("CT-ICP received a scan with no valid points");
     }
@@ -264,11 +259,6 @@ public:
 
     // Run through pipeline
     const auto summary = ct_icp_->RegisterFrame(pc);
-    if (!summary.success) {
-      throw std::runtime_error(
-        "CT-ICP registration failed: " + summary.error_message
-      );
-    }
 
     // Save the estimate
     const auto pose = ct_icp_->Trajectory().back();

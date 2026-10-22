@@ -10,10 +10,44 @@ from rich.table import Table
 
 from evalio import stats
 from evalio import types as ty
-from evalio.cli.stats import eval_dataset
 from evalio.datasets.base import Dataset
 from evalio.datasets.rosbag import RosbagDataset
 from evalio.utils import print_warning
+
+
+def _evaluate_trajectory(
+    file: Path,
+    ground_truth: ty.Trajectory,
+    windows: list[stats.WindowKind],
+    metric: stats.MetricKind,
+) -> dict[str, Any] | None:
+    trajectory = ty.Trajectory.from_file(file)
+    if (
+        not isinstance(trajectory, ty.Trajectory)
+        or not isinstance(trajectory.metadata, ty.Experiment)
+        or trajectory.metadata.status != ty.ExperimentStatus.Complete
+    ):
+        return None
+    if (
+        len(trajectory) < 2
+        or trajectory.stamps[-1] < ground_truth.stamps[0]
+        or ground_truth.stamps[-1] < trajectory.stamps[0]
+    ):
+        raise ValueError(f"{file.stem}: require two poses with overlapping timestamps")
+    aligned, truth = stats.align(trajectory, ground_truth)
+    if len(aligned) < 2:
+        raise ValueError(f"{file.stem}: fewer than two aligned poses")
+    result = trajectory.metadata.to_dict()
+    elapsed = trajectory.metadata.total_elapsed
+    result["hz"] = len(trajectory) / elapsed if elapsed and elapsed > 0 else None
+    ate = stats.ate(aligned, truth).summarize(metric)
+    result.update(ATEt=ate.trans, ATEr=ate.rot)
+    for window in windows:
+        rte = stats.rte(aligned, truth, window).summarize(metric)
+        result.update(
+            {f"RTEt_{window.name()}": rte.trans, f"RTEr_{window.name()}": rte.rot}
+        )
+    return result
 
 
 def evaluation_options(config: Any) -> tuple[list[stats.WindowKind], stats.MetricKind]:
@@ -53,19 +87,32 @@ def evaluate_runs(
     metric: stats.MetricKind,
 ) -> bool:
     groups: dict[Path, list[Path]] = {}
+    refreshed: set[Dataset] = set()
+    success = True
     for experiment in experiments:
+        if experiment.file is None or not isinstance(experiment.sequence, Dataset):
+            continue
+        sequence = experiment.sequence
+        if isinstance(sequence, RosbagDataset) and sequence not in refreshed:
+            gt = sequence.ground_truth()
+            if gt is not None:
+                gt.to_file(experiment.file.parent / "gt.csv")
+            refreshed.add(sequence)
+        trajectory = ty.Trajectory.from_file(experiment.file)
         if (
-            experiment.file is not None
-            and isinstance(experiment.sequence, Dataset)
-            and (
-                experiment.sequence.config.get("ground_truth")
-                if isinstance(experiment.sequence, RosbagDataset)
-                else (experiment.file.parent / "gt.csv").is_file()
-            )
+            not isinstance(trajectory, ty.Trajectory)
+            or not isinstance(trajectory.metadata, ty.Experiment)
+            or trajectory.metadata.status != ty.ExperimentStatus.Complete
+        ):
+            success = False
+        if (
+            sequence.config.get("ground_truth")
+            if isinstance(sequence, RosbagDataset)
+            else (experiment.file.parent / "gt.csv").is_file()
         ):
             groups.setdefault(experiment.file.parent, []).append(experiment.file)
     if not groups:
-        return True
+        return success
 
     columns = [
         "sequence",
@@ -82,24 +129,22 @@ def evaluate_runs(
         columns.extend([f"RTEt_{window.name()}", f"RTEr_{window.name()}"])
     columns.extend(["total_elapsed", "max_elapsed", "hz"])
     rows: list[dict[str, Any]] = []
-    success = True
     for directory, files in groups.items():
         try:
-            results = eval_dataset(
-                directory,
-                False,
-                windows,
-                metric,
-                None,
-                files=files,
-                only_complete=True,
-                require_ground_truth=True,
-            )
+            ground_truth = ty.Trajectory.from_file(directory / "gt.csv")
+            if not isinstance(ground_truth, ty.Trajectory) or len(ground_truth) < 2:
+                raise ValueError("Ground truth requires at least two poses")
+            results = [
+                _evaluate_trajectory(file, ground_truth, windows, metric)
+                for file in files
+            ]
         except (ValueError, IndexError) as error:
             print_warning(f"Evaluation failed for {directory.name}: {error}")
             success = False
             continue
-        for result in results or []:
+        for result in results:
+            if result is None:
+                continue
             result["metric"] = metric.value
             rows.append(
                 {

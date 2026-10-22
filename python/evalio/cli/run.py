@@ -201,23 +201,13 @@ def run_from_cli(
         d._fail_not_downloaded()
 
     # parse all of the lengths
-    sized_datasets = []
-    for sequence, sequence_length in datasets:
-        try:
-            count = len(sequence)
-        except ValueError as error:
-            raise typer.BadParameter(
-                f"{sequence.full_name}: {error}", param_hint="run"
-            ) from error
-        sized_datasets.append(
-            (
-                sequence,
-                count if sequence_length is None else min(count, sequence_length),
-            )
-        )
-    datasets = sized_datasets
-    if any(length <= 0 for _, length in datasets):
-        raise typer.BadParameter("Datasets must contain at least one LiDAR scan")
+    try:
+        datasets = [
+            (s, len(s) if length is None else min(len(s), length))
+            for s, length in datasets
+        ]
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint="run") from error
 
     print(
         f"Running {plural(len(datasets), 'dataset')} => {plural(len(pipelines) * len(datasets), 'experiment')}"
@@ -264,9 +254,8 @@ def run_from_cli(
         windows, metric = evaluation_options(evaluation_config)
     except (ValueError, TypeError) as error:
         raise typer.BadParameter(str(error), param_hint="evaluation") from error
-    success = run(experiments, vis, rerun_failed)
-    evaluation_success = evaluate_runs(experiments, out, windows, metric)
-    if not success or not evaluation_success:
+    run(experiments, vis, rerun_failed)
+    if not evaluate_runs(experiments, out, windows, metric):
         raise typer.Exit(code=1)
 
 
@@ -278,7 +267,7 @@ def run(
     experiments: list[ty.Experiment],
     vis: RerunVis,
     rerun_failed: bool,
-) -> bool:
+):
     # Make sure everything is in the experiments that we need
     len_before = len(experiments)
     experiments = [
@@ -293,9 +282,7 @@ def run(
             f"Some experiments were invalid and will be skipped ({len_before - len(experiments)} out of {len_before})"
         )
 
-    success = True
     prev_dataset = None
-    saved_ground_truth: set[ds.Dataset] = set()
     for exp in experiments:
         # For the type checker
         if (
@@ -305,13 +292,11 @@ def run(
         ):
             continue
 
-        # Refresh ground truth once per dataset, including completed runs.
-        gt_file = exp.file.parent / "gt.csv"
-        if exp.sequence not in saved_ground_truth:
+        # save ground truth if we haven't already
+        if not (gt_file := exp.file.parent / "gt.csv").exists():
             gt = exp.sequence.ground_truth()
             if gt is not None:
                 gt.to_file(gt_file)
-            saved_ground_truth.add(exp.sequence)
 
         # Figure out the status of the experiment
         traj = ty.Trajectory.from_file(exp.file)
@@ -336,7 +321,6 @@ def run(
                     print(f"Rerunning {info}, previously failed")
                 else:
                     print(f"Skipping {info}, previously failed")
-                    success = False
                     continue
             case ty.ExperimentStatus.Started:
                 print(f"Overwriting {info}")
@@ -357,7 +341,6 @@ def run(
 
         # If it failed, mark the status as failed
         if exitcode != 0:
-            success = False
             exp.status = ty.ExperimentStatus.Fail
             traj = ty.Trajectory.from_file(exp.file)
             if isinstance(traj, ty.Trajectory) and isinstance(
@@ -371,7 +354,6 @@ def run(
     # if len(experiments) > 1:
     #     if (file := experiments[0].file) is not None:
     #         evaluate([str(file.parent)])
-    return success
 
 
 def run_single(
@@ -381,7 +363,8 @@ def run_single(
     # Build everything
     output = exp.setup()
     if isinstance(output, ds.DatasetConfigError | pl.PipelineConfigError):
-        raise TypeError(f"Error setting up experiment {exp.name}: {output}")
+        print_warning(f"Error setting up experiment {exp.name}: {output}")
+        return
     pipe, dataset = output
     if vis.args is not None:
         pipe.set_visualizing(vis.args)
@@ -427,11 +410,6 @@ def run_single(
             break
 
     loop.close()
-    if loop.n < exp.sequence_length or len(traj) == 0:
-        traj.close()
-        raise ValueError(
-            "Experiment ended without the requested scans and pose estimates"
-        )
     traj.metadata.status = ty.ExperimentStatus.Complete
     traj.metadata.total_elapsed = time_total
     traj.metadata.max_elapsed = time_max

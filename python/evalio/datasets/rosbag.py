@@ -121,6 +121,17 @@ class RosbagDataset(Dataset):
     def files(self) -> Sequence[Path]:
         return [Path(self.config["rosbag"])]
 
+    def __len__(self) -> int:
+        try:
+            iterator = self.data_iter()
+            try:
+                return len(iterator)
+            finally:
+                if isinstance(iterator, RosbagIter):
+                    iterator.reader.close()
+        except ValueError as error:
+            raise ValueError(f"{self.full_name}: {error}") from error
+
     def data_iter(self) -> DatasetIterator:
         return Mid360RosbagIter(self.config)
 

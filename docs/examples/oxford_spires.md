@@ -23,6 +23,10 @@ bash scripts/setup_rosbag_pipelines.sh
 uv run --no-sync evalio run -c examples/oxford_spires.yml
 ```
 
+The build script is needed only to install or update evalio. After installation,
+edit the YAML and run `evalio run -c ...`; loading, odometry and ground-truth
+evaluation require no changes to evalio's source code.
+
 The configuration runs KissICP, CT-ICP and FORM and writes trajectories under
 `results/oxford_spires/oxford_spires/<sequence>/`. ATE/RTE comparisons are printed
 and saved to `results/oxford_spires/evaluation.csv`. Remove dataset entries to
