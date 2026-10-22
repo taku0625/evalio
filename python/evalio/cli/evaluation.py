@@ -11,6 +11,7 @@ from rich.table import Table
 from evalio import stats
 from evalio import types as ty
 from evalio.cli.stats import eval_dataset
+from evalio.datasets.base import Dataset
 from evalio.datasets.rosbag import RosbagDataset
 from evalio.utils import print_warning
 
@@ -55,8 +56,12 @@ def evaluate_runs(
     for experiment in experiments:
         if (
             experiment.file is not None
-            and isinstance(experiment.sequence, RosbagDataset)
-            and experiment.sequence.config.get("ground_truth")
+            and isinstance(experiment.sequence, Dataset)
+            and (
+                experiment.sequence.config.get("ground_truth")
+                if isinstance(experiment.sequence, RosbagDataset)
+                else (experiment.file.parent / "gt.csv").is_file()
+            )
         ):
             groups.setdefault(experiment.file.parent, []).append(experiment.file)
     if not groups:

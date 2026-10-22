@@ -1,0 +1,23 @@
+# EVALIO_DATA=/path/to/evalio_data uv run --no-sync evalio run -c examples/oxford_spires.yml
+# Layout: <EVALIO_DATA>/oxford_spires/<sequence>/ with bags and gt-tum.txt.
+output_dir: ./results/oxford_spires
+
+evaluation:
+  metric: sse
+  w_seconds: [1.0]
+  w_meters: [30.0]
+
+datasets:
+  - oxford_spires/*
+  # To run one sequence, replace the wildcard entry with:
+  # - name: oxford_spires/blenheim_palace_01
+  #   length: 100
+
+# The built-in loader supplies topics, calibration and ground truth.
+pipelines:
+  - pipeline: kiss
+    max_num_threads: 2
+  - pipeline: ct
+    ls_num_threads: 2
+  - pipeline: form
+    num_threads: 2
