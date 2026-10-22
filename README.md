@@ -107,6 +107,10 @@ For ROS 2 Jazzy bags from a Livox MID-360, see the
 [MID-360 guide](docs/examples/mid360.md) and the
 [garden1–3 configuration](examples/mid360-garden.yml) for KissICP, CT-ICP and FORM.
 
+For existing Oxford Spires MCAP bags, see the
+[converted dataset guide](docs/examples/oxford_spires.md) and
+[Oxford Spires configuration](examples/oxford_spires.yml).
+
 ## Contributing
 
 Contributions are always welcome! Feel free to open an issue, pull request, etc. The documentation has a more details on developing new datasets and pipelines.

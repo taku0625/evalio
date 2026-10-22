@@ -34,6 +34,7 @@ def make_bag(
     rows: int = 16,
     columns: int = 180,
     lidar_topic: str = "/livox/lidar",
+    oxford: bool = False,
 ) -> None:
     store = get_typestore(Stores.ROS2_JAZZY)
     package = "livox_ros_driver2/msg/"
@@ -60,14 +61,29 @@ def make_bag(
             ("offset_time", "<u4"),
         ]
     )
+    if oxford:
+        dtype = np.dtype(dtype.descr + [("ring", "<u2")])
     msgtype = package + "CustomMsg" if custom else "sensor_msgs/msg/PointCloud2"
     with Writer(path, version=9, storage_plugin=storage) as writer:
         connection = writer.add_connection(lidar_topic, msgtype, typestore=store)
+        if oxford:
+            ignored = writer.add_connection(
+                "/alphasense_driver_ros/imu", "std_msgs/msg/String", typestore=store
+            )
+            writer.write(
+                ignored,
+                900_000_000,
+                store.serialize_cdr(
+                    types["std_msgs/msg/String"]("unused"), "std_msgs/msg/String"
+                ),
+            )
         for i in range(frames):
             origin = np.array([0.02 * i, 0, 1.5])
             bounds = np.where(rays > 0, [6, 6, 4], [-6, -6, 0])
             distance = np.min((bounds - origin) / rays, axis=1)
             xyz = rays * distance[:, None]
+            if oxford:
+                xyz = xyz.reshape(rows, columns, 3).transpose(1, 0, 2).reshape(-1, 3)
             offsets = np.arange(len(xyz), dtype=np.uint32) * 10000
             stamp = 1_000_000_000 + i * 100_000_000
             header = types["std_msgs/msg/Header"](
@@ -88,12 +104,16 @@ def make_bag(
                 for axis, name in enumerate(("x", "y", "z")):
                     data[name] = xyz[:, axis]
                 data["intensity"], data["offset_time"] = 20, offsets
+                if oxford:
+                    data["ring"] = np.tile(np.arange(rows), columns)
                 field_names = ("x", "y", "z", "intensity", "offset_time")
+                if oxford:
+                    field_names += ("ring",)
                 fields = [
                     types["sensor_msgs/msg/PointField"](
                         name,
                         offset * 4,
-                        6 if name == "offset_time" else 7,
+                        6 if name == "offset_time" else 4 if name == "ring" else 7,
                         1,
                     )
                     for offset, name in enumerate(field_names)

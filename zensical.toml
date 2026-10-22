@@ -19,6 +19,7 @@ nav = [
     { "Examples" = [
         { "Odometry" = "examples/odometry.md" },
         { "MID-360 ROS 2 Bags" = "examples/mid360.md" },
+        { "Oxford Spires MCAP Bags" = "examples/oxford_spires.md" },
         { "Data Loading" = "examples/data_loading.md" },
         { "Evaluation" = "examples/evaluation.md" },
         { "Custom Dataset" = "examples/dataset.md" },

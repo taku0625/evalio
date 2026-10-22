@@ -14,6 +14,15 @@ from rosbags.typesys import Stores, get_types_from_msg, get_typestore
 
 from evalio import types as ty
 from evalio.datasets.base import Dataset, DatasetIterator, Measurement
+from evalio.datasets.loaders import (
+    LidarDensity,
+    LidarFormatParams,
+    LidarMajor,
+    LidarPointStamp,
+    LidarStamp,
+    RosbagIter,
+)
+from evalio.datasets.oxford_spires import OxfordSpires
 
 CUSTOM_POINT = """uint32 offset_time
 float32 x
@@ -36,6 +45,9 @@ def rosbag_dataset(config: dict[str, Any], base_dir: Path = Path(".")) -> Datase
     """Create a local sequence from a rosbag dataset entry in a run config."""
     config = dict(config)
     config.pop("length", None)
+    profile = config.setdefault("profile", "mid360")
+    if profile not in ("mid360", "oxford_spires"):
+        raise ValueError(f"Unknown rosbag profile: {profile}")
     path = (base_dir / Path(config["rosbag"]).expanduser()).resolve()
     if not path.exists():
         raise ValueError(f"Rosbag does not exist: {path}")
@@ -43,16 +55,22 @@ def rosbag_dataset(config: dict[str, Any], base_dir: Path = Path(".")) -> Datase
     config.setdefault("name", path.stem)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", config["name"]):
         raise ValueError("Rosbag name must contain only letters, digits, _, - or .")
-    config.setdefault("lidar_topic", "/livox/lidar")
+    config.setdefault(
+        "lidar_topic", "/hesai/pandar" if profile == "oxford_spires" else "/livox/lidar"
+    )
     config.setdefault("imu_topic", None)
     lidar = dict(config.get("lidar", {}))
-    for key, value in {
+    defaults = {
         "num_rows": 32,
         "num_columns": 512,
         "rate": 10.0,
         "min_range": 0.1,
         "max_range": 70.0,
-    }.items():
+    }
+    if profile == "oxford_spires":
+        params = OxfordSpires.blenheim_palace_01.lidar_params()
+        defaults = {key: getattr(params, key) for key in defaults}
+    for key, value in defaults.items():
         lidar.setdefault(key, value)
     for key, limit in (("num_rows", 255), ("num_columns", 65535)):
         if type(lidar[key]) is not int or not 1 <= lidar[key] <= limit:
@@ -75,7 +93,8 @@ def rosbag_dataset(config: dict[str, Any], base_dir: Path = Path(".")) -> Datase
         if not gt.is_file():
             raise ValueError(f"Ground truth does not exist: {gt}")
         config["ground_truth"] = str(gt)
-    sequence_type = RosbagDataset(
+    dataset_class = OxfordSpiresRosbag if profile == "oxford_spires" else RosbagDataset
+    sequence_type = dataset_class(
         "LocalRosbag", {"sequence": json.dumps(config, sort_keys=True)}
     )
     return cast(Dataset, sequence_type.sequence)
@@ -148,6 +167,37 @@ class RosbagDataset(Dataset):
                 "TUM ground truth requires at least two increasing timestamps"
             )
         return ty.Trajectory(stamps=stamps, poses=poses)
+
+
+class OxfordSpiresRosbag(RosbagDataset):
+    """A converted Oxford Spires bag with its original calibration and point layout."""
+
+    @classmethod
+    def dataset_name(cls) -> str:
+        return "oxford_spires"
+
+    def data_iter(self) -> DatasetIterator:
+        return RosbagIter(
+            Path(self.config["rosbag"]),
+            self.config["lidar_topic"],
+            self.config["imu_topic"],
+            self.lidar_params(),
+            lidar_format=LidarFormatParams(
+                stamp=LidarStamp.Start,
+                point_stamp=LidarPointStamp.Start,
+                major=LidarMajor.Column,
+                density=LidarDensity.OnlyValidPoints,
+            ),
+        )
+
+    def imu_T_lidar(self) -> ty.SE3:
+        return OxfordSpires.blenheim_palace_01.imu_T_lidar()
+
+    def imu_T_gt(self) -> ty.SE3:
+        return OxfordSpires.blenheim_palace_01.imu_T_gt()
+
+    def imu_params(self) -> ty.ImuParams:
+        return OxfordSpires.blenheim_palace_01.imu_params()
 
 
 class Mid360RosbagIter(DatasetIterator):

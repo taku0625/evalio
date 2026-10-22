@@ -1,5 +1,5 @@
-# EVALIO_DATA=/path/to/evalio_data uv run --no-sync evalio run -c examples/oxford_spires.yml
-# Layout: <EVALIO_DATA>/oxford_spires/<sequence>/ with bags and gt-tum.txt.
+# uv run --no-sync evalio run -c examples/oxford_spires.yml
+dataset_root: /home/nakao/dataset/oxford_spires_dataset/data/sequences
 output_dir: ./results/oxford_spires
 
 evaluation:
@@ -8,12 +8,63 @@ evaluation:
   w_meters: [30.0]
 
 datasets:
-  - oxford_spires/*
-  # To run one sequence, replace the wildcard entry with:
-  # - name: oxford_spires/blenheim_palace_01
-  #   length: 100
+  - &oxford
+    name: keble_college_02
+    profile: oxford_spires
+    lidar_topic: /hesai/pandar
+    imu_topic: null
+    rosbag: 2024-03-12-keble-college-02/rosbag_mcap
+    ground_truth: 2024-03-12-keble-college-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_03
+    rosbag: 2024-03-12-keble-college-03/rosbag_mcap
+    ground_truth: 2024-03-12-keble-college-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_04
+    rosbag: 2024-03-12-keble-college-04/rosbag_mcap
+    ground_truth: 2024-03-12-keble-college-04/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_05
+    rosbag: 2024-03-12-keble-college-05/rosbag_mcap
+    ground_truth: 2024-03-12-keble-college-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_01
+    rosbag: 2024-03-13-observatory-quarter-01/rosbag_mcap
+    ground_truth: 2024-03-13-observatory-quarter-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_02
+    rosbag: 2024-03-13-observatory-quarter-02/rosbag_mcap
+    ground_truth: 2024-03-13-observatory-quarter-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_01
+    rosbag: 2024-03-14-blenheim-palace-01/rosbag_mcap
+    ground_truth: 2024-03-14-blenheim-palace-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_02
+    rosbag: 2024-03-14-blenheim-palace-02/rosbag_mcap
+    ground_truth: 2024-03-14-blenheim-palace-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_05
+    rosbag: 2024-03-14-blenheim-palace-05/rosbag_mcap
+    ground_truth: 2024-03-14-blenheim-palace-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_02
+    rosbag: 2024-03-18-christ-church-02/rosbag_mcap
+    ground_truth: 2024-03-18-christ-church-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_03
+    rosbag: 2024-03-18-christ-church-03/rosbag_mcap
+    ground_truth: 2024-03-18-christ-church-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_05
+    rosbag: 2024-03-20-christ-church-05/rosbag_mcap
+    ground_truth: 2024-03-20-christ-church-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: bodleian_library_02
+    rosbag: 2024-05-20-bodleian-library-02/rosbag_mcap
+    ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
 
-# The built-in loader supplies topics, calibration and ground truth.
+# The Oxford profile preserves the native point layout and calibration.
 pipelines:
   - pipeline: kiss
     max_num_threads: 2

@@ -1,4 +1,6 @@
 # Snapshot
+- 2026-10-22 [USER] Existing MCAP layout supplied in tree.txt; root `/home/nakao/dataset/oxford_spires_dataset`, LiDAR `/hesai/pandar`, no IMU input.
+- 2026-10-22 [CODE] Supersedes the original built-in-layout example: Oxford YAML directly lists all 13 date-named folders under data/sequences, rosbag_mcap and processed/trajectory/gt-tum.txt. Oxford profile preserves native point layout and calibration; dataset_root resolves relative paths.
 - 2026-10-22 [USER] Add an Oxford Spires example YAML. [CODE] `examples/oxford_spires.yml` selects 13 built-in sequences and KissICP/CT-ICP/FORM; built-in saved ground truth is eligible for automatic evaluation.
 - 2026-10-21 [USER] Automatically evaluate when ground_truth is supplied: run prints ATE/RTE and writes evaluation.csv; support adding/updating GT on completed runs.
 - 2026-10-21 [USER] Actual LiDAR topic is `/livox/lidar_192_168_1_182`; editing only garden1 left garden2/3 on the loader default. Share the example topic through a YAML anchor; identify the dataset in topic errors.
@@ -34,10 +36,12 @@
 - `zensical.toml`
 - `.github/workflows/reusable_docs.yml`
 - `pyproject.toml`
-- `docs/index.md`
-- `docs/css/tweaks.css`
+- `docs/examples/oxford_spires.md`
+- `tests/test_converted_oxford.py`
 
 # Receipts
+- 2026-10-22 [TOOL] Updated wheel installed; standard `uv run --no-sync evalio run` verified all three pipelines and automatic GT evaluation on a generated Oxford-format MCAP with no IMU input. Smoke log: `/workspace/.setup/converted-oxford-smoke.log`.
+- 2026-10-22 [TOOL] Converted Oxford implementation: 102 tests passed, 2 public-dataset cases skipped; Ruff, pyrefly and docs passed. Generated MCAP tests run all three methods and evaluate GT with IMU disabled despite an IMU topic being present; attached tree's 13 sequence names match YAML exactly. Actual user MCAPs remain unavailable in cloud.
 - 2026-10-22 [TOOL] Oxford YAML parsed into 13 sequences, three compiled pipelines and valid evaluation options; targeted auto-evaluation/rosbag suites: 16 passed. Ruff and pyrefly passed. Actual Oxford bags are not installed.
 - 2026-10-21 [TOOL] Reinstalled the updated wheel; `uv run --no-sync evalio run` on the three generated bags skipped nine completed odometry runs and produced nine evaluation.csv rows with finite ATE. 1-second RTE was blank for these 0.3-second runs. Docs build passed.
 - 2026-10-21 [TOOL] Automatic-evaluation checks: 97 passed, 2 public-dataset cases skipped; Ruff and pyrefly passed. Generated bag tests compare saved metrics with stats and cover late/changed GT, unrelated files, failed runs, short windows and nonoverlapping clocks.

@@ -77,7 +77,7 @@ class RosbagIter(DatasetIterator):
         self,
         path: Path,
         lidar_topic: str,
-        imu_topic: str,
+        imu_topic: Optional[str],
         lidar_params: LidarParams,
         type_store: Optional[Stores] = None,
         # Reduce compute by telling the iterator how to format the pointcloud
@@ -88,7 +88,7 @@ class RosbagIter(DatasetIterator):
         Args:
             path (Path): Location of rosbag file(s) or dir(s). If a directory is passed containing multiple bags (ros1 or ros2), all will be loaded.
             lidar_topic (str): Name of lidar topic.
-            imu_topic (str): Name of imu topic.
+            imu_topic (Optional[str]): Name of imu topic, or None to read LiDAR only.
             lidar_params (LidarParams): Lidar parameters, can be gotten from [lidar_params][evalio.datasets.Dataset.lidar_params].
             type_store (Optional[Stores], optional): Additional type store to be loaded into rosbags. Defaults to None.
             lidar_format (Optional[LidarFormatParams], optional): Various parameters for how lidar data is stored. If not specified, most will try to be inferred. We strongly recommend setting this to ensure data is standardized properly. Defaults to None.
@@ -149,7 +149,9 @@ class RosbagIter(DatasetIterator):
             x for x in self.reader.connections if x.topic == self.imu_topic
         ]
 
-        if len(self.connections_imu) == 0 or len(self.connections_lidar) == 0:
+        if (
+            self.imu_topic is not None and not self.connections_imu
+        ) or not self.connections_lidar:
             table = Table(title="Rosbag Connections", highlight=True, box=box.ROUNDED)
             table.add_column("Topic", justify="right")
             table.add_column("MsgType", justify="left")
@@ -157,7 +159,7 @@ class RosbagIter(DatasetIterator):
                 table.add_row(c.topic, c.msgtype)
             Console().print(table)
 
-            if len(self.connections_imu) == 0:
+            if self.imu_topic is not None and len(self.connections_imu) == 0:
                 raise ValueError(f"Could not find topic {self.imu_topic}")
             if len(self.connections_lidar) == 0:
                 raise ValueError(f"Could not find topic {self.lidar_topic}")
@@ -185,6 +187,8 @@ class RosbagIter(DatasetIterator):
                 raise ValueError(f"Unknown message type {connection.msgtype}")
 
     def imu_iter(self) -> Iterator[ImuMeasurement]:
+        if not self.connections_imu:
+            return
         iterator = self.reader.messages(connections=self.connections_imu)
 
         for connection, _timestamp, rawdata in iterator:

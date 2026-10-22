@@ -139,7 +139,13 @@ def run_from_cli(
                 "No pipelines specified in config", param_hint="run"
             )
 
-        datasets = ds.parse_config(params.get("datasets", None), config.parent)
+        dataset_root = params.get("dataset_root", ".")
+        if not isinstance(dataset_root, str):
+            raise typer.BadParameter(
+                "dataset_root must be a path string", param_hint="run"
+            )
+        base_dir = (config.parent / Path(dataset_root).expanduser()).resolve()
+        datasets = ds.parse_config(params.get("datasets", None), base_dir)
         pipelines = pl.parse_config(params.get("pipelines", None))
 
         out = in_out or Path(
