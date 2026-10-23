@@ -2,11 +2,6 @@
 dataset_root: /home/nakao/dataset/oxford_spires_dataset/data/sequences
 output_dir: ./results/oxford_spires
 
-evaluation:
-  metric: sse
-  w_seconds: [1.0]
-  w_meters: [30.0]
-
 datasets:
   - &oxford
     name: keble_college_02
@@ -64,11 +59,281 @@ datasets:
     rosbag: 2024-05-20-bodleian-library-02/rosbag_mcap
     ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
 
+
+  - <<: *oxford
+    name: keble_college_02_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/keble-college-02/bag
+    ground_truth: 2024-03-12-keble-college-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_03_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/keble-college-03/bag
+    ground_truth: 2024-03-12-keble-college-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_04_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/keble-college-04/bag
+    ground_truth: 2024-03-12-keble-college-04/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_05_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/keble-college-05/bag
+    ground_truth: 2024-03-12-keble-college-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_01_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/observatory-quarter-01/bag
+    ground_truth: 2024-03-13-observatory-quarter-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_02_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/observatory-quarter-02/bag
+    ground_truth: 2024-03-13-observatory-quarter-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_01_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/blenheim-palace-01/bag
+    ground_truth: 2024-03-14-blenheim-palace-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_02_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/blenheim-palace-02/bag
+    ground_truth: 2024-03-14-blenheim-palace-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_05_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/blenheim-palace-05/bag
+    ground_truth: 2024-03-14-blenheim-palace-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_02_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/christ-church-02/bag
+    ground_truth: 2024-03-18-christ-church-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_03_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/christ-church-03/bag
+    ground_truth: 2024-03-18-christ-church-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_05_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/christ-church-05/bag
+    ground_truth: 2024-03-20-christ-church-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: bodleian_library_02_s1
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed1/bodleian-library-02/bag
+    ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
+
+
+  - <<: *oxford
+    name: keble_college_02_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/keble-college-02/bag
+    ground_truth: 2024-03-12-keble-college-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_03_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/keble-college-03/bag
+    ground_truth: 2024-03-12-keble-college-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_04_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/keble-college-04/bag
+    ground_truth: 2024-03-12-keble-college-04/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_05_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/keble-college-05/bag
+    ground_truth: 2024-03-12-keble-college-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_01_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/observatory-quarter-01/bag
+    ground_truth: 2024-03-13-observatory-quarter-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_02_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/observatory-quarter-02/bag
+    ground_truth: 2024-03-13-observatory-quarter-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_01_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/blenheim-palace-01/bag
+    ground_truth: 2024-03-14-blenheim-palace-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_02_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/blenheim-palace-02/bag
+    ground_truth: 2024-03-14-blenheim-palace-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_05_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/blenheim-palace-05/bag
+    ground_truth: 2024-03-14-blenheim-palace-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_02_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/christ-church-02/bag
+    ground_truth: 2024-03-18-christ-church-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_03_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/christ-church-03/bag
+    ground_truth: 2024-03-18-christ-church-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_05_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/christ-church-05/bag
+    ground_truth: 2024-03-20-christ-church-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: bodleian_library_02_s2
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed2/bodleian-library-02/bag
+    ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
+
+
+  - <<: *oxford
+    name: keble_college_02_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/keble-college-02/bag
+    ground_truth: 2024-03-12-keble-college-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_03_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/keble-college-03/bag
+    ground_truth: 2024-03-12-keble-college-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_04_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/keble-college-04/bag
+    ground_truth: 2024-03-12-keble-college-04/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_05_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/keble-college-05/bag
+    ground_truth: 2024-03-12-keble-college-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_01_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/observatory-quarter-01/bag
+    ground_truth: 2024-03-13-observatory-quarter-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_02_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/observatory-quarter-02/bag
+    ground_truth: 2024-03-13-observatory-quarter-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_01_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/blenheim-palace-01/bag
+    ground_truth: 2024-03-14-blenheim-palace-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_02_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/blenheim-palace-02/bag
+    ground_truth: 2024-03-14-blenheim-palace-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_05_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/blenheim-palace-05/bag
+    ground_truth: 2024-03-14-blenheim-palace-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_02_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/christ-church-02/bag
+    ground_truth: 2024-03-18-christ-church-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_03_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/christ-church-03/bag
+    ground_truth: 2024-03-18-christ-church-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_05_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/christ-church-05/bag
+    ground_truth: 2024-03-20-christ-church-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: bodleian_library_02_s3
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed3/bodleian-library-02/bag
+    ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
+
+
+  - <<: *oxford
+    name: keble_college_02_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/keble-college-02/bag
+    ground_truth: 2024-03-12-keble-college-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_03_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/keble-college-03/bag
+    ground_truth: 2024-03-12-keble-college-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_04_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/keble-college-04/bag
+    ground_truth: 2024-03-12-keble-college-04/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_05_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/keble-college-05/bag
+    ground_truth: 2024-03-12-keble-college-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_01_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/observatory-quarter-01/bag
+    ground_truth: 2024-03-13-observatory-quarter-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_02_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/observatory-quarter-02/bag
+    ground_truth: 2024-03-13-observatory-quarter-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_01_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/blenheim-palace-01/bag
+    ground_truth: 2024-03-14-blenheim-palace-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_02_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/blenheim-palace-02/bag
+    ground_truth: 2024-03-14-blenheim-palace-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_05_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/blenheim-palace-05/bag
+    ground_truth: 2024-03-14-blenheim-palace-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_02_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/christ-church-02/bag
+    ground_truth: 2024-03-18-christ-church-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_03_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/christ-church-03/bag
+    ground_truth: 2024-03-18-christ-church-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_05_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/christ-church-05/bag
+    ground_truth: 2024-03-20-christ-church-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: bodleian_library_02_s4
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed4/bodleian-library-02/bag
+    ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
+
+
+  - <<: *oxford
+    name: keble_college_02_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/keble-college-02/bag
+    ground_truth: 2024-03-12-keble-college-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_03_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/keble-college-03/bag
+    ground_truth: 2024-03-12-keble-college-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_04_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/keble-college-04/bag
+    ground_truth: 2024-03-12-keble-college-04/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: keble_college_05_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/keble-college-05/bag
+    ground_truth: 2024-03-12-keble-college-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_01_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/observatory-quarter-01/bag
+    ground_truth: 2024-03-13-observatory-quarter-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: observatory_quarter_02_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/observatory-quarter-02/bag
+    ground_truth: 2024-03-13-observatory-quarter-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_01_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/blenheim-palace-01/bag
+    ground_truth: 2024-03-14-blenheim-palace-01/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_02_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/blenheim-palace-02/bag
+    ground_truth: 2024-03-14-blenheim-palace-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: blenheim_palace_05_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/blenheim-palace-05/bag
+    ground_truth: 2024-03-14-blenheim-palace-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_02_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/christ-church-02/bag
+    ground_truth: 2024-03-18-christ-church-02/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_03_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/christ-church-03/bag
+    ground_truth: 2024-03-18-christ-church-03/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: christ_church_05_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/christ-church-05/bag
+    ground_truth: 2024-03-20-christ-church-05/processed/trajectory/gt-tum.txt
+  - <<: *oxford
+    name: bodleian_library_02_s5
+    rosbag: /home/nakao/dataset/rosbag/ral2026/oxford_spires/speed5/bodleian-library-02/bag
+    ground_truth: 2024-05-20-bodleian-library-02/processed/trajectory/gt-tum.txt
+
 # The Oxford profile preserves the native point layout and calibration.
 pipelines:
   - pipeline: kiss
-    max_num_threads: 2
+    max_num_threads: 24
   - pipeline: ct
-    ls_num_threads: 2
+    ls_num_threads: 24
   - pipeline: form
-    num_threads: 2
+    num_threads: 24
