@@ -1,4 +1,6 @@
 # Snapshot
+- 2026-10-23 [USER] Add evo APE with -a to evaluation.csv, preserving existing metrics and keeping changes to main internals small.
+- 2026-10-23 [CODE] New APE_evo_rmse column uses actual evo 1.38.1, original trajectories, 0.01s association and ape(align=True, correct_scale=False); missing associations/degenerate alignment leave only this column blank with a warning.
 - 2026-10-22 [USER] Review all changes against main; retain config-only execution and minimize changes to existing internal code.
 - 2026-10-22 [CODE] Reviewed against refreshed origin/main: run()/run_single() and CLI stats.py restored exactly. Existing-code diff reduced from 145 to 74 changed lines; retain only bag config integration, optional IMU, CT zero-padding removal and equal-time guard. Automatic evaluation uses unchanged stats.align/ate/rte APIs in the new helper.
 - 2026-10-22 [USER] Existing MCAP layout supplied in tree.txt; root `/home/nakao/dataset/oxford_spires_dataset`, LiDAR `/hesai/pandar`, no IMU input.
@@ -19,13 +21,13 @@
 - 2026-08-27 [USER] Requested a compact, bottom-right copyright footer that uses the page colors.
 
 # Done (recent)
+- 2026-10-23 [CODE] Added evo -a translation APE RMSE to automatic CSV/table reports without modifying main run/stats/C++ internals; evo is a required dependency, YAML unchanged.
 - 2026-10-22 [CODE] Reduced changes to existing execution and evaluation code; preserve YAML-only operation after installation, all three pipelines and GT refresh on completed runs.
 - 2026-10-21 [CODE] Added config-backed MID-360 Jazzy bags (CustomMsg/PointCloud2, SQLite3/MCAP), spherical organization for FORM, optional TUM ground truth, reliable CLI failure status and garden1–3 config/build guide.
 - 2026-08-27 [CODE] Completed the Zensical migration: navigation, generated reference pages, Markdown extensions, and the mike version selector are configured.
 - 2026-08-27 [CODE] Added unique Lucide front-matter icons to authored and generated documentation pages.
 - 2026-08-27 [CODE] Completed palette-aware compact and wordmark SVG logo generation and site integration.
-- 2026-08-27 [CODE] Moved `docs/about.md` to `docs/index.md`, retained its `About` nav label, and set `project.extra.homepage` to `/evalio/`.
-- 2026-08-27 [CODE] Styled footer metadata with page color tokens; only the compact copyright is bottom-right, while Zensical attribution remains left.
+- 2026-08-27 [CODE] Moved About to docs/index.md and homepage /evalio/; styled the compact bottom-right copyright with page colors while retaining Zensical attribution.
 
 # Working set
 - `python/evalio/cli/evaluation.py`
@@ -36,12 +38,13 @@
 - `scripts/setup_rosbag_pipelines.sh`
 - `examples/mid360-garden.yml`
 - `examples/oxford_spires.yml`
-- `zensical.toml`
+- `tests/test_auto_evaluation.py`
 - `pyproject.toml`
 - `docs/examples/oxford_spires.md`
-- `tests/test_converted_oxford.py`
+- `uv.lock`
 
 # Receipts
+- 2026-10-23 [TOOL] evo APE: 104 tests passed, 2 skipped; Ruff, pyrefly and docs passed. Regression matches actual evo CLI -a and analytic RMSE with rotation/translation/scale error and unmatched timestamps. Installed uv run --no-sync refreshed three completed runs with finite APE_evo_rmse, no odometry rerun. Existing locked versions unchanged. Logs: /workspace/.setup/evo-ape-{full,install,docs,smoke}.log.
 - 2026-10-22 [TOOL] Minimal-change review: 102 passed, 2 skipped (unavailable public datasets); Ruff, pyrefly, clang-format 20 and docs passed. Rebuilt wheel; standard uv run --no-sync evalio run produced 3 completed Oxford MCAP runs and 3 finite GT metrics with IMU disabled. Logs: /workspace/.setup/minimal-review-{build,tests,docs,smoke}.log. Actual user bags remain unavailable.
 - 2026-10-22 [TOOL] Updated wheel installed; standard `uv run --no-sync evalio run` verified all three pipelines and automatic GT evaluation on a generated Oxford-format MCAP with no IMU input. Smoke log: `/workspace/.setup/converted-oxford-smoke.log`.
 - 2026-10-22 [TOOL] Converted Oxford implementation: 102 tests passed, 2 public-dataset cases skipped; Ruff, pyrefly and docs passed. Generated MCAP tests run all three methods and evaluate GT with IMU disabled despite an IMU topic being present; attached tree's 13 sequence names match YAML exactly. Actual user MCAPs remain unavailable in cloud.

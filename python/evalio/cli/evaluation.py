@@ -5,6 +5,10 @@ import math
 from pathlib import Path
 from typing import Any
 
+from evo import EvoException
+from evo.core import metrics, sync
+from evo.core.trajectory import PoseTrajectory3D
+from evo.main_ape import ape
 from rich.console import Console
 from rich.table import Table
 
@@ -13,6 +17,26 @@ from evalio import types as ty
 from evalio.datasets.base import Dataset
 from evalio.datasets.rosbag import RosbagDataset
 from evalio.utils import print_warning
+
+
+def _evo_ape_rmse(estimate: ty.Trajectory, ground_truth: ty.Trajectory) -> float:
+    def convert(trajectory: ty.Trajectory) -> PoseTrajectory3D:
+        return PoseTrajectory3D(
+            poses_se3=[pose.to_mat() for pose in trajectory.poses],
+            timestamps=[stamp.to_sec() for stamp in trajectory.stamps],
+        )
+
+    reference, estimate_evo = sync.associate_trajectories(
+        convert(ground_truth), convert(estimate), max_diff=0.01
+    )
+    result = ape(
+        reference,
+        estimate_evo,
+        metrics.PoseRelation.translation_part,
+        align=True,
+        correct_scale=False,
+    )
+    return float(result.stats["rmse"])
 
 
 def _evaluate_trajectory(
@@ -42,6 +66,11 @@ def _evaluate_trajectory(
     result["hz"] = len(trajectory) / elapsed if elapsed and elapsed > 0 else None
     ate = stats.ate(aligned, truth).summarize(metric)
     result.update(ATEt=ate.trans, ATEr=ate.rot)
+    try:
+        result["APE_evo_rmse"] = _evo_ape_rmse(trajectory, ground_truth)
+    except EvoException as error:
+        result["APE_evo_rmse"] = None
+        print_warning(f"evo APE unavailable for {file}: {error}")
     for window in windows:
         rte = stats.rte(aligned, truth, window).summarize(metric)
         result.update(
@@ -124,6 +153,7 @@ def evaluate_runs(
         "sequence_length",
         "ATEt",
         "ATEr",
+        "APE_evo_rmse",
     ]
     for window in windows:
         columns.extend([f"RTEt_{window.name()}", f"RTEr_{window.name()}"])
@@ -169,6 +199,7 @@ def evaluate_runs(
         "name",
         "ATEt",
         "ATEr",
+        "APE_evo_rmse",
         *[key for key in columns if key.startswith("RTE")],
     ]
     for column in shown:

@@ -33,6 +33,11 @@ and saved to `results/oxford_spires/evaluation.csv`. Remove dataset entries to
 run a subset, or add `length: 100` to the first anchored entry for a short run
 across all entries.
 
+`evaluation.csv` also includes `APE_evo_rmse`: evo's translation APE RMSE in
+meters with `-a` (SE(3) Umeyama alignment, no scale correction), using evo's
+default 0.01-second timestamp tolerance. It is separate from evalio's ATE/RTE.
+No YAML changes are needed; rerunning completed experiments refreshes the CSV.
+
 The `profile: oxford_spires` setting uses the original Hesai QT-64 layout
 (64 rows, 1200 columns) and Oxford Spires calibration, preserving per-point
 times and organizing the original returns for FORM. It does not apply MID-360
