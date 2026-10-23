@@ -429,7 +429,9 @@ def test_failed_pipeline_returns_error_and_can_retry(tmp_path: Path):
     assert isinstance(trajectory.metadata, ty.Experiment)
     assert trajectory.metadata.status == ty.ExperimentStatus.Fail
     with (tmp_path / "results" / "evaluation.csv").open() as stream:
-        assert list(csv.DictReader(stream)) == []
+        row = next(csv.DictReader(stream))
+        assert row["status"] == "fail"
+        assert row["ATEt"] == row["APE_evo_rmse"] == ""
     assert runner.invoke(app, ["run", "-c", str(config_path)]).exit_code == 1
     dataset["lidar"]["max_range"] = 70.0
     config_path.write_text(yaml.safe_dump(config))
@@ -437,3 +439,33 @@ def test_failed_pipeline_returns_error_and_can_retry(tmp_path: Path):
     assert result.exit_code == 0, result.output
     with (tmp_path / "results" / "evaluation.csv").open() as stream:
         assert next(csv.DictReader(stream))["status"] == "complete"
+
+
+def test_ct_registration_failure_is_not_complete(tmp_path: Path):
+    if "ct" not in pl.all_pipelines():
+        pytest.skip("ct is not compiled in this build")
+    make_bag(tmp_path / "bag", True, StoragePlugin.SQLITE3)
+    (tmp_path / "gt.tum").write_text(
+        "\n".join(f"{1 + i * 0.1:.1f} {i * 0.02} 0 0 0 0 0 1" for i in range(4))
+    )
+    config = {
+        "datasets": [config_for(Path("bag")) | {"ground_truth": "gt.tum"}],
+        "pipelines": [
+            {"pipeline": "ct", "min_number_neighbors": 1000, "ls_num_threads": 2}
+        ],
+        "output_dir": str(tmp_path / "results"),
+    }
+    path = tmp_path / "run.yml"
+    path.write_text(yaml.safe_dump(config))
+    result = CliRunner().invoke(app, ["run", "-c", str(path)])
+    saved = ty.Trajectory.from_file(
+        tmp_path / "results" / "rosbag" / "garden" / "ct.csv"
+    )
+    assert isinstance(saved, ty.Trajectory)
+    assert isinstance(saved.metadata, ty.Experiment)
+    assert saved.metadata.status == ty.ExperimentStatus.Fail
+    assert result.exit_code == 1, result.output
+    with (tmp_path / "results" / "evaluation.csv").open() as stream:
+        row = next(csv.DictReader(stream))
+    assert row["status"] == "fail"
+    assert row["ATEt"] == row["APE_evo_rmse"] == ""

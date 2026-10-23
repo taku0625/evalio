@@ -3,6 +3,7 @@ from pathlib import Path
 from time import time
 from typing import Annotated, Optional
 
+import numpy as np
 import typer
 import yaml
 
@@ -340,9 +341,14 @@ def run(
         process.close()
 
         # If it failed, mark the status as failed
-        if exitcode != 0:
+        traj = ty.Trajectory.from_file(exp.file)
+        if (
+            exitcode != 0
+            or not isinstance(traj, ty.Trajectory)
+            or not isinstance(traj.metadata, ty.Experiment)
+            or traj.metadata.status != ty.ExperimentStatus.Complete
+        ):
             exp.status = ty.ExperimentStatus.Fail
-            traj = ty.Trajectory.from_file(exp.file)
             if isinstance(traj, ty.Trajectory) and isinstance(
                 traj.metadata, ty.Experiment
             ):
@@ -363,8 +369,7 @@ def run_single(
     # Build everything
     output = exp.setup()
     if isinstance(output, ds.DatasetConfigError | pl.PipelineConfigError):
-        print_warning(f"Error setting up experiment {exp.name}: {output}")
-        return
+        raise TypeError(f"Error setting up experiment {exp.name}: {output}")
     pipe, dataset = output
     if vis.args is not None:
         pipe.set_visualizing(vis.args)
@@ -378,40 +383,49 @@ def run_single(
     time_total = 0.0
 
     loop = tqdm(total=exp.sequence_length)
-    for data in dataset:
-        if isinstance(data, ty.ImuMeasurement):
-            start = time()
-            pipe.add_imu(data)
-            time_running += time() - start
-        elif isinstance(data, ty.LidarMeasurement):  # type: ignore
-            start = time()
-            pipe.add_lidar(data)
-            time_running += time() - start
+    try:
+        for data in dataset:
+            if isinstance(data, ty.ImuMeasurement):
+                start = time()
+                pipe.add_imu(data)
+                time_running += time() - start
+            elif isinstance(data, ty.LidarMeasurement):  # type: ignore
+                start = time()
+                pipe.add_lidar(data)
+                time_running += time() - start
 
-            time_total += time_running
-            time_max = max(time_max, time_running)
-            time_running = 0.0
+                time_total += time_running
+                time_max = max(time_max, time_running)
+                time_running = 0.0
 
-            vis.log_scan(data)
+                vis.log_scan(data)
 
-            loop.update()
+                loop.update()
 
-        # Save and visualize any new information
-        for stamp, pose in pipe.saved_estimates():
-            traj.append(stamp, pose)
-            vis.log_pose(stamp, pose)
-        for stamp, features in pipe.saved_features_matrix():
-            vis.log_features(stamp, features)
-        for stamp, map in pipe.saved_maps_matrix():
-            vis.log_map(stamp, map)
+            # Save and visualize any new information
+            for stamp, pose in pipe.saved_estimates():
+                if not np.isfinite(pose.to_mat()).all():
+                    raise ValueError("Pipeline produced a non-finite pose")
+                traj.append(stamp, pose)
+                vis.log_pose(stamp, pose)
+            for stamp, features in pipe.saved_features_matrix():
+                vis.log_features(stamp, features)
+            for stamp, map in pipe.saved_maps_matrix():
+                vis.log_map(stamp, map)
 
-        if loop.n >= exp.sequence_length:
-            loop.close()
-            break
-
-    loop.close()
-    traj.metadata.status = ty.ExperimentStatus.Complete
-    traj.metadata.total_elapsed = time_total
-    traj.metadata.max_elapsed = time_max
-    traj.rewrite()
-    traj.close()
+            if loop.n >= exp.sequence_length:
+                break
+        if loop.n < exp.sequence_length or len(traj) == 0:
+            raise ValueError(
+                f"Experiment incomplete: processed {loop.n}/{exp.sequence_length} "
+                f"scans, saved {len(traj)} poses"
+            )
+        traj.metadata.status = ty.ExperimentStatus.Complete
+    finally:
+        loop.close()
+        if traj.metadata.status != ty.ExperimentStatus.Complete:
+            traj.metadata.status = ty.ExperimentStatus.Fail
+        traj.metadata.total_elapsed = time_total
+        traj.metadata.max_elapsed = time_max
+        traj.rewrite()
+        traj.close()

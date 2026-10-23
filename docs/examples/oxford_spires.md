@@ -38,6 +38,11 @@ meters with `-a` (SE(3) Umeyama alignment, no scale correction), using evo's
 default 0.01-second timestamp tolerance. It is separate from evalio's ATE/RTE.
 No YAML changes are needed; rerunning completed experiments refreshes the CSV.
 
+Failed odometry runs appear as `status: fail` with empty error metrics in the CSV
+and table. `--rerun-failed` retries them. After updating C++ failure checks, rerun
+the build script above. For results previously mislabelled `complete`, use a new
+output directory with `-o results/oxford_spires-recheck` to force fresh odometry.
+
 The `profile: oxford_spires` setting uses the original Hesai QT-64 layout
 (64 rows, 1200 columns) and Oxford Spires calibration, preserving per-point
 times and organizing the original returns for FORM. It does not apply MID-360

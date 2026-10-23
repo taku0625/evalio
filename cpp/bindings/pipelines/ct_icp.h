@@ -259,6 +259,11 @@ public:
 
     // Run through pipeline
     const auto summary = ct_icp_->RegisterFrame(pc);
+    if (!summary.success) {
+      throw std::runtime_error(
+        "CT-ICP registration failed: " + summary.error_message
+      );
+    }
 
     // Save the estimate
     const auto pose = ct_icp_->Trajectory().back();

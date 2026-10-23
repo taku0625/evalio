@@ -49,9 +49,10 @@ def _evaluate_trajectory(
     if (
         not isinstance(trajectory, ty.Trajectory)
         or not isinstance(trajectory.metadata, ty.Experiment)
-        or trajectory.metadata.status != ty.ExperimentStatus.Complete
     ):
         return None
+    if trajectory.metadata.status != ty.ExperimentStatus.Complete:
+        return trajectory.metadata.to_dict()
     if (
         len(trajectory) < 2
         or trajectory.stamps[-1] < ground_truth.stamps[0]
@@ -197,6 +198,7 @@ def evaluate_runs(
     shown = [
         "sequence",
         "name",
+        "status",
         "ATEt",
         "ATEr",
         "APE_evo_rmse",
