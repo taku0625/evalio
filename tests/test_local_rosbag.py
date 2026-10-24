@@ -151,9 +151,10 @@ def test_garden_example_shares_lidar_topic(tmp_path: Path):
         bag = tmp_path / entry["name"]
         make_bag(bag, True, StoragePlugin.SQLITE3, frames=1, lidar_topic=topic)
         entry["rosbag"] = str(bag)
+        entry.pop("ground_truth", None)
     sequences = ds.parse_config(config["datasets"])
     assert isinstance(sequences, list)
-    assert len(sequences) == 3
+    assert len(sequences) == len(config["datasets"])
     for sequence, _ in sequences:
         assert len(sequence) == 1
 
@@ -431,7 +432,7 @@ def test_failed_pipeline_returns_error_and_can_retry(tmp_path: Path):
     with (tmp_path / "results" / "evaluation.csv").open() as stream:
         row = next(csv.DictReader(stream))
         assert row["status"] == "fail"
-        assert row["ATEt"] == row["APE_evo_rmse"] == ""
+        assert row["ATEt"] == row["ATE_evo_rmse"] == row["APE_evo_rmse"] == ""
     assert runner.invoke(app, ["run", "-c", str(config_path)]).exit_code == 1
     dataset["lidar"]["max_range"] = 70.0
     config_path.write_text(yaml.safe_dump(config))
@@ -468,4 +469,4 @@ def test_ct_registration_failure_is_not_complete(tmp_path: Path):
     with (tmp_path / "results" / "evaluation.csv").open() as stream:
         row = next(csv.DictReader(stream))
     assert row["status"] == "fail"
-    assert row["ATEt"] == row["APE_evo_rmse"] == ""
+    assert row["ATEt"] == row["ATE_evo_rmse"] == row["APE_evo_rmse"] == ""

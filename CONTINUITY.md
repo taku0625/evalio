@@ -1,4 +1,5 @@
 # Snapshot
+- 2026-10-24 [USER] ABCI changes were removed; also display evo evaluation as ATE. [CODE] Start from user's rewritten remote b474b21, excluding ABCI history; add ATE_evo_rmse to CSV/table as the same SE(3)-aligned translation RMSE as APE_evo_rmse. Existing ATEt/ATEr remain independent.
 - 2026-10-23 [USER] Odometry failures appear complete; supplied log has CT empty scans and FORM map::at aborts on Oxford _s2 sequences. Fix status with minimal internal changes.
 - 2026-10-23 [CODE] Supersedes exact-main execution decision: gate Complete on requested scans and finite/nonempty estimates, preserve partial poses on Python exceptions, check child status as well as exitcode, propagate CT summary.success; include failed rows with blank metrics in evaluation.csv.
 - 2026-10-23 [USER] Add evo APE with -a to evaluation.csv, preserving existing metrics and keeping changes to main internals small.
@@ -23,18 +24,18 @@
 - 2026-08-27 [USER] Requested a compact, bottom-right copyright footer that uses the page colors.
 
 # Done (recent)
+- 2026-10-24 [CODE] Added ATE_evo_rmse to automatic CSV/table reports, sharing evo -a translation RMSE with APE_evo_rmse. Based on user's b474b21 rewrite, preserving ABCI removal; example test fixtures now tolerate current sequence counts and isolate configured absolute paths/GT.
 - 2026-10-23 [CODE] Fixed odometry completion checks and CT failure propagation; Python exception paths retain valid partial poses, failed results appear in CSV/table with blank metrics, abnormal child exits become Fail even with exit code zero.
 - 2026-10-23 [CODE] Added evo -a translation APE RMSE to automatic CSV/table reports without modifying main run/stats/C++ internals; evo is a required dependency, YAML unchanged.
 - 2026-10-22 [CODE] Reduced changes to existing execution and evaluation code; preserve YAML-only operation after installation, all three pipelines and GT refresh on completed runs.
 - 2026-10-21 [CODE] Added config-backed MID-360 Jazzy bags (CustomMsg/PointCloud2, SQLite3/MCAP), spherical organization for FORM, optional TUM ground truth, reliable CLI failure status and garden1–3 config/build guide.
-- 2026-08-27 [CODE] Completed the Zensical migration: navigation, generated reference pages, Markdown extensions, and the mike version selector are configured.
-- 2026-08-27 [CODE] Added Lucide page icons and palette-aware compact/wordmark SVG logos to the migrated documentation.
+- 2026-08-27 [CODE] Completed Zensical migration with navigation, generated references, Markdown extensions, mike selector, Lucide icons and palette-aware SVG logos.
 - 2026-08-27 [CODE] Moved About to docs/index.md and homepage /evalio/; styled the compact bottom-right copyright with page colors while retaining Zensical attribution.
 
 # Working set
 - `python/evalio/cli/evaluation.py`
 - `python/evalio/datasets/rosbag.py`
-- `python/evalio/datasets/parser.py`
+- `docs/examples/mid360.md`
 - `python/evalio/cli/run.py`
 - `tests/test_local_rosbag.py`
 - `scripts/setup_rosbag_pipelines.sh`
@@ -46,6 +47,7 @@
 - `tests/test_run_status.py`
 
 # Receipts
+- 2026-10-24 [TOOL] evo ATE: 111 passed, 2 skipped; Ruff/format, pyrefly and docs passed. Both evo columns match real evo CLI -a; missing associations, degenerate alignment and failed odometry leave ATE_evo_rmse blank. Rebuilt wheel and standard uv run --no-sync refreshed 3 completed runs with finite equal evo columns and identical trajectory hashes. Logs: /workspace/.setup/evo-ate-{full,docs,install,smoke}.log.
 - 2026-10-23 [TOOL] Status regression before fix: 5 failed, 2 passed (CT false failure flag, no poses, NaN, early exhaustion, zero-code exit). After rebuild: 111 passed, 2 skipped; Ruff, pyrefly, clang-format 20 and docs passed. Installed uv CLI: CT failure gives Fail/blank metrics/exit 1, Kiss remains Complete; retry only reruns failure. Logs: /workspace/.setup/run-status-{before,build,full,docs}.log; /workspace/.setup/run-status-smoke/{initial,retry}.log.
 - 2026-10-23 [TOOL] evo APE: 104 tests passed, 2 skipped; Ruff, pyrefly and docs passed. Regression matches actual evo CLI -a and analytic RMSE with rotation/translation/scale error and unmatched timestamps. Installed uv run --no-sync refreshed three completed runs with finite APE_evo_rmse, no odometry rerun. Existing locked versions unchanged. Logs: /workspace/.setup/evo-ape-{full,install,docs,smoke}.log.
 - 2026-10-22 [TOOL] Minimal-change review: 102 passed, 2 skipped (unavailable public datasets); Ruff, pyrefly, clang-format 20 and docs passed. Rebuilt wheel; standard uv run --no-sync evalio run produced 3 completed Oxford MCAP runs and 3 finite GT metrics with IMU disabled. Logs: /workspace/.setup/minimal-review-{build,tests,docs,smoke}.log. Actual user bags remain unavailable.

@@ -53,6 +53,7 @@ def test_builtin_oxford_spires_evaluation(tmp_path: Path):
     assert 0 < float(rows[0]["ATEt"]) < 0.2
     assert 0 < float(rows[0]["RTEt_1.0s"]) < 0.2
     assert rows[0]["APE_evo_rmse"] == ""
+    assert rows[0]["ATE_evo_rmse"] == ""
 
 
 @pytest.fixture
@@ -93,9 +94,13 @@ def evaluation_pair(tmp_path: Path):
     return experiment, ground_truth, estimate
 
 
-def test_evo_ape_matches_aligned_cli(tmp_path: Path, evaluation_pair):
+def test_evo_ate_and_ape_match_aligned_cli(
+    tmp_path: Path, evaluation_pair, monkeypatch, capsys
+):
+    monkeypatch.setenv("COLUMNS", "240")
     experiment, ground_truth, estimate = evaluation_pair
     assert evaluate_runs([experiment], tmp_path, [], stats.MetricKind.sse)
+    assert "ATE_evo_rmse" in capsys.readouterr().out
     with (tmp_path / "evaluation.csv").open() as stream:
         row = next(csv.DictReader(stream))
     ape_rmse = float(row["APE_evo_rmse"])
@@ -148,6 +153,7 @@ def test_evo_ape_matches_aligned_cli(tmp_path: Path, evaluation_pair):
     with zipfile.ZipFile(tmp_path / "evo.zip") as archive:
         cli_stats = json.loads(archive.read("stats.json"))
     assert ape_rmse == pytest.approx(cli_stats["rmse"])
+    assert float(row["ATE_evo_rmse"]) == pytest.approx(cli_stats["rmse"])
 
 
 def test_evo_no_timestamp_matches_keeps_existing_metrics(
@@ -160,5 +166,6 @@ def test_evo_no_timestamp_matches_keeps_existing_metrics(
     with (tmp_path / "evaluation.csv").open() as stream:
         row = next(csv.DictReader(stream))
     assert row["APE_evo_rmse"] == ""
+    assert row["ATE_evo_rmse"] == ""
     assert np.isfinite(float(row["ATEt"]))
     assert "evo APE unavailable" in capsys.readouterr().out

@@ -46,9 +46,8 @@ def _evaluate_trajectory(
     metric: stats.MetricKind,
 ) -> dict[str, Any] | None:
     trajectory = ty.Trajectory.from_file(file)
-    if (
-        not isinstance(trajectory, ty.Trajectory)
-        or not isinstance(trajectory.metadata, ty.Experiment)
+    if not isinstance(trajectory, ty.Trajectory) or not isinstance(
+        trajectory.metadata, ty.Experiment
     ):
         return None
     if trajectory.metadata.status != ty.ExperimentStatus.Complete:
@@ -72,6 +71,7 @@ def _evaluate_trajectory(
     except EvoException as error:
         result["APE_evo_rmse"] = None
         print_warning(f"evo APE unavailable for {file}: {error}")
+    result["ATE_evo_rmse"] = result["APE_evo_rmse"]
     for window in windows:
         rte = stats.rte(aligned, truth, window).summarize(metric)
         result.update(
@@ -154,6 +154,7 @@ def evaluate_runs(
         "sequence_length",
         "ATEt",
         "ATEr",
+        "ATE_evo_rmse",
         "APE_evo_rmse",
     ]
     for window in windows:
@@ -201,6 +202,7 @@ def evaluate_runs(
         "status",
         "ATEt",
         "ATEr",
+        "ATE_evo_rmse",
         "APE_evo_rmse",
         *[key for key in columns if key.startswith("RTE")],
     ]

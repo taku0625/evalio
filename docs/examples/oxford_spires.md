@@ -36,6 +36,8 @@ across all entries.
 `evaluation.csv` also includes `APE_evo_rmse`: evo's translation APE RMSE in
 meters with `-a` (SE(3) Umeyama alignment, no scale correction), using evo's
 default 0.01-second timestamp tolerance. It is separate from evalio's ATE/RTE.
+The same aligned translation RMSE is also shown as `ATE_evo_rmse` in the CSV and
+terminal table: evo's translation APE RMSE is the absolute trajectory error (ATE).
 No YAML changes are needed; rerunning completed experiments refreshes the CSV.
 
 Failed odometry runs appear as `status: fail` with empty error metrics in the CSV

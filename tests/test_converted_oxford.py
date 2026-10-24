@@ -24,17 +24,20 @@ def test_oxford_example_paths(tmp_path: Path):
         config["dataset_root"]
         == "/home/nakao/dataset/oxford_spires_dataset/data/sequences"
     )
-    assert len(config["datasets"]) == 13
     for entry in config["datasets"]:
         assert entry["imu_topic"] is None
         assert entry["lidar_topic"] == "/hesai/pandar"
         assert entry["profile"] == "oxford_spires"
+        if Path(entry["rosbag"]).is_absolute():
+            entry["rosbag"] = str(Path("bags") / entry["name"])
+        if Path(entry["ground_truth"]).is_absolute():
+            entry["ground_truth"] = str(Path("ground_truth") / f"{entry['name']}.tum")
         bag, gt = tmp_path / entry["rosbag"], tmp_path / entry["ground_truth"]
         bag.mkdir(parents=True)
-        gt.parent.mkdir(parents=True)
+        gt.parent.mkdir(parents=True, exist_ok=True)
         gt.write_text("1 0 0 0 0 0 0 1\n2 1 0 0 0 0 0 1\n")
     sequences = ds.parse_config(config["datasets"], tmp_path)
-    assert isinstance(sequences, list) and len(sequences) == 13
+    assert isinstance(sequences, list) and len(sequences) == len(config["datasets"])
     names = []
     for sequence, _ in sequences:
         assert isinstance(sequence, OxfordSpiresRosbag)
